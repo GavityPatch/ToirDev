@@ -9,11 +9,10 @@ GameObject Portal => GameObjects.Get<GameObject>().FirstOrDefault(x => x.Name ==
  ]]
 
 IncludeFile("Lib\\AllClass.lua")
-IncludeFile("Lib\\Prediction.lua")
+IncludeFile("Lib\\VPrediction.lua")
 IncludeFile("Lib\\DamageLib.lua")
 
 SetPrintErrorLog(false)
-
 myHero = GetMyHero()
 player = myHero
 
@@ -103,18 +102,13 @@ function Tick()
 		Combo()
 	end
 
---  if GetKeyPress(CKeyCode) == 1 then
---    SetLuaHarass(true)
---    Farm()
---  end
-
 	if GetKeyPress(VKeyCode) == 1 then
 		SetLuaLaneClear(true)		
 		Clear()
 	end
 
 	KillSteal()
-	--AutoW()
+	--Auto W + Q + R()
 	CheckDashes()
 end
 
