@@ -10,7 +10,6 @@ GameObject Portal => GameObjects.Get<GameObject>().FirstOrDefault(x => x.Name ==
 
 IncludeFile("Lib\\AllClass.lua")
 IncludeFile("Lib\\Prediction.lua")
-IncludeFile("Lib\\VPrediction.lua")
 IncludeFile("Lib\\DamageLib.lua")
 
 SetPrintErrorLog(false)
