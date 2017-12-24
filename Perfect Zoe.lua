@@ -12,12 +12,13 @@ IncludeFile("Lib\\AllClass.lua")
 IncludeFile("Lib\\VPrediction.lua")
 IncludeFile("Lib\\DamageLib.lua")
 
-SetPrintErrorLog(false)
+SetPrintErrorLog(false) --true
 myHero = GetMyHero()
-player = myHero
+Stuf = myHero
 
-local VP = nil
+local Pred = nil
 local VPHitChance = 0
+local Ball = {}
 
 local priorityTable = {
     p5 = {"Alistar", "Amumu", "Blitzcrank", "Braum", "ChoGath", "DrMundo", "Garen", "Gnar", "Hecarim", "Janna", "JarvanIV", "Leona", "Lulu", "Malphite", "Nami", "Nasus", "Nautilus", "Nunu","Olaf", "Rammus", "Renekton", "Sejuani", "Shen", "Shyvana", "Singed", "Sion", "Skarner", "Sona","Soraka", "Taric", "Thresh", "Volibear", "Warwick", "MonkeyKing", "Yorick", "Zac", "Zyra", "Rakan", "Ornn"},
@@ -27,7 +28,7 @@ local priorityTable = {
     p1 = {"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jinx", "Kalista", "KogMaw", "Lucian", "MissFortune", "Quinn", "Sivir", "Teemo", "Tristana", "Twitch", "Varus", "Vayne", "Xayah", "Zoe"},
 }
 
-VP = VPrediction()
+Pred = VPrediction()
 
 local EnemyMinions = minionManager(MINION_ENEMY, 1200, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, 1200, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -49,25 +50,39 @@ function KillSteal()
   for i, Target in pairs(GetEnemyHeroes()) do
     if Target and ValidTarget(Target) then
       if not Target.IsDead and Target.IsVisible then      
-        if CanCast(_Q) and getDmg(_Q, Target) > Target.HP and CanMove() then
+        if CanCast(_Q) and GetDamagerSpellsMagicsZoe(_Q, Target) > Target.HP and CanMove() then
           CastQ(Target)
         end
         
-        if CanCast(_E) and getDmg(_E, Target) > Target.HP and CanMove() then
+        if CanCast(_E) and GetDamagerSpellsMagicsZoe(_E, Target) > Target.HP and CanMove() then
           CastE(Target)
         end       
 
-        if CanCast(_R) and CanCast(_Q) and getDmg(_Q, Target) > Target.HP and CanMove() and GetDistance(Target) < Q.Range + R.Range then
+        if CanCast(_R) and CanCast(_Q) and GetDamagerSpellsMagicsZoe(_Q, Target) > Target.HP and CanMove() and GetDistance(Target) < Q.Range + R.Range then
           CastR(Target)
         end
         
-        if CanCast(_R) and CanCast(_E) and getDmg(_E, Target) > Target.HP and CanMove() and GetDistance(Target) < E.Range + R.Range then
+        if CanCast(_R) and CanCast(_E) and GetDamagerSpellsMagicsZoe(_E, Target) > Target.HP and CanMove() and GetDistance(Target) < E.Range + R.Range then
           CastR(Target)
         end
 
       end
     end
   end
+end
+
+function OnCreateObject(unit)
+  local name = GetObjName(unit.Addr)
+	if name == "Zoe_Base_Q_Mis_Linger" then
+		Ball = unit
+	end
+end
+
+function OnDeleteObject(unit)
+	local name = GetObjName(unit.Addr)
+	if name == "Zoe_Base_Q_Mis_Linger" then
+		Ball = unit
+	end
 end
 
 function CheckDashes()
@@ -87,7 +102,7 @@ end
 
 function Tick()
 	myHero = GetMyHero()
-  player = myHero
+  Stuf = myHero
 	if myHero.CharName ~= "Zoe" then return end
   
 	if IsTyping() then return end
@@ -108,8 +123,8 @@ function Tick()
 	end
 
 	KillSteal()
-	--Auto W + Q + R()
-	CheckDashes()
+  CheckDashes()
+  
 end
 
 function CastR(Target)
@@ -125,9 +140,8 @@ end
 
 function CastQ(Target)  
   if CanCast(_Q) and ValidTarget(Target) then    
-    local CastPosition, HitChance, Position = VP:GetLineCastPosition(Target, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
+    local CastPosition, HitChance, Position = Pred:GetLineCastPosition(Target, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
     local CastPosition2 = Vector(CastPosition) + Vector(Vector(myHero) - Vector(CastPosition)):normalized() * Q.Range * 1.5
-    --print("Q HitChance=" .. tostring(HitChance))
     if CastPosition and HitChance >= VPHitChance and GetDistance(CastPosition) <= Q.Range then
       CastSpellToPos(CastPosition2.x, CastPosition2.z, _Q)
       DelayAction(function() CastSpellToPos(CastPosition.x, CastPosition.z, _Q) end, 0.25)
@@ -137,8 +151,7 @@ end
 
 function CastE(Target)
   if ValidTarget(Target) and CanCast(_E) then
-    local CastPosition, HitChance, Position = VP:GetLineCastPosition(Target, E.Delay, E.Width, E.Range, E.Speed, myHero, false)
-    --print("E HitChance=" .. tostring(HitChance))    
+    local CastPosition, HitChance, Position = Pred:GetLineCastPosition(Target, E.Delay, E.Width, E.Range, E.Speed, myHero, false)   
     if CastPosition and HitChance >= VPHitChance and GetDistance(CastPosition) <= E.Range then
       CastSpellToPos(CastPosition.x, CastPosition.z, _E)
     end    
@@ -147,7 +160,6 @@ end
 
 function CastW(Target)  
     if CanCast(_W) and ValidTarget(Target) then
-      
     end
 end
 
@@ -182,8 +194,8 @@ end
 
 function FarmClear()
    for _, minion in pairs(EnemyMinions.objects) do
-    if minion and Setting_IsLaneClearUseQ() and CanCast(_Q) and ValidTarget(minion) and getDmg(_Q,minion) > minion.HP and not IsMyManaLowLaneClear() then
-      local CastPosition, HitChance, Position = VP:GetLineCastPosition(minion, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
+    if minion and Setting_IsLaneClearUseQ() and CanCast(_Q) and ValidTarget(minion) and GetDamagerSpellsMagicsZoe(_Q,minion) > minion.HP and not IsMyManaLowLaneClear() then
+      local CastPosition, HitChance, Position = Pred:GetLineCastPosition(minion, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
       local CastPosition2 = Vector(CastPosition) + Vector(Vector(myHero) - Vector(CastPosition)):normalized() * Q.Range
       if CastPosition and HitChance >= VPHitChance and GetDistance(CastPosition) <= Q.Range then
         CastSpellToPos(CastPosition2.x, CastPosition2.z, _Q)
@@ -205,7 +217,7 @@ function JungClear()
   local JungleMob = GetJungle()
   if JungleMob ~= nil then
     if Setting_IsLaneClearUseQ() and CanCast(_Q) and GetDistance(JungleMob) < Q.Range and CanMove() and not IsMyManaLowLaneClear() then
-      local CastPosition, HitChance, Position = VP:GetLineCastPosition(JungleMob, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
+      local CastPosition, HitChance, Position = Pred:GetLineCastPosition(JungleMob, Q.Delay, Q.Width, Q.Range, Q.Speed, myHero, false)
       local CastPosition2 = Vector(CastPosition) + Vector(Vector(myHero) - Vector(CastPosition)):normalized() * Q.Range * 1.5
       if CastPosition and HitChance >= VPHitChance and GetDistance(CastPosition) <= Q.Range then
         CastSpellToPos(CastPosition2.x, CastPosition2.z, _Q)
@@ -269,7 +281,7 @@ function ValidTargetRange(Target, Range)
   return false
 end
 
-function getDmg(Spell, Enemy)
+function GetDamagerSpellsMagicsZoe(Spell, Enemy)
   local Damage = 0
   if Spell == _Q then
     if myHero.LevelSpell(_Q) == 0 then return 0 end
@@ -303,7 +315,7 @@ function getDmg(Spell, Enemy)
     local DamageSpellE = DamageSpellETable[myHero.LevelSpell(_E)]
     local Enemy_SpellBlock = Enemy.MagicArmor
 
-    local Void_Staff_Id = 3135 -- Void Staff Item
+    local Void_Staff_Id = 3135 
     if GetItemByID(Void_Staff_Id) > 0 then
       Enemy_SpellBlock = Enemy_SpellBlock * (1 - 35/100)
     end
