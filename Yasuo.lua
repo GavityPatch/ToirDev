@@ -1,13 +1,15 @@
---Credtis: PINGGIN AND DavKat
+--Credtis: PINGGIN AND DavKat, Shulepin
 
---Incluindo Files do Yasuo 
+--Incluindo Files do Yasuo
     IncludeFile("Lib\\TOIR_SDK.lua")
+    IncludeFile("Lib\\DamageLib")
 
 --Classes
 Yasuo = class()
 
 function Yasuo:__init()
     SetLuaCombo(true)
+    SetLuaLaneClear(true)
 
     W_SPELLS = { -- Yea boiz and grillz its all right here.......
     ["FizzMarinerDoom"]                      = {Spellname ="FizzMarinerDoom",Name = "Fizz", Spellslot =_R},
@@ -111,60 +113,82 @@ function Yasuo:__init()
     ["ZyraGraspingRoots"]                      = {Spellname ="ZyraGraspingRoots",Name ="Zyra",Spellslot =_E}
 
 }
-
-
+    self.EnemyMinions = minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_HEALTH_ASC)
     --Target
-    self.menu_ts = TargetSelector(1500, 1, myHero, true, self.menu, true)
+    self.menu_ts = TargetSelector(1750, 0, myHero, true, true, true)
 
     self.MissileSpellsData = {}
     self:MenuYasuo()
 
+    self.passiveTracker = false
+
 		--Spells
 		self.Q = Spell(_Q, 425)
 		self.W = Spell(_W, 600)
-		self.E = Spell(_E, 475)
+        self.E = Spell(_E, 475)
         self.R = Spell(_R, 1200)
-        
+
         self.W:SetSkillShot()
         self.E:SetTargetted()
         self.R:SetTargetted()
 
 		Callback.Add("Tick", function() self:OnTick() end) --Call Back Yasuo <3 by: DevkAT
 		--Callback.Add("Draw", function() self:OnDraw() end)
-        Callback.Add("CreateObject", function(...) self:OnCreateObject(...) end)
         Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
-        Callback.Add("DeleteObject", function(...) self:OnDeleteObject(...) end)
         Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 end
 
 function Yasuo:MenuYasuo()
 	self.menu = "Yasuo"
-	self.Use_Combo_Q = self:MenuBool("Use Combo Q", true)
+    self.Use_Combo_Q = self:MenuBool("Use Combo Q", true)
+    self.AutoQStack = self:MenuBool("Auto Q", true)
 
-    self.Use_Combo_W = self:MenuBool("Use Combo W", false)
-    
+    self.Use_Combo_W = self:MenuBool("Auto W", true)
+
 	self.Enable_E = self:MenuBool("Enable E", true)
 
 	self.Enable_R = self:MenuBool("Enable R", true)
-	self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
+    self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
+    self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
+    self.MinInimigo = self:MenuSliderInt("Range Heros {R}", 2)
+
+    self.UseQClear = self:MenuBool("Use Q LaneClear", true)
+    self.UseEClear = self:MenuBool("Use E LaneClear", true)
 
 	self.menu_key_combo = self:MenuKeyBinding("Combo", 32)
-	self.Lane_Clear = self:MenuKeyBinding("Lane Clear", 86)
+    self.Lane_Clear = self:MenuKeyBinding("Lane Clear", 86)
+    self.ActiveR = self:MenuKeyBinding("Active R Utimate", 84)
+    self.Flee = self:MenuKeyBinding("Flee {E}", 65)
+    self.Last_Hit = self:MenuKeyBinding("Last Hit", 88)
+    self.Harass = self:MenuKeyBinding("Harass", 67)
 end
 
 function Yasuo:OnDrawMenu()
 	if Menu_Begin(self.menu) then
-		if Menu_Begin("Setting Q") then
+		if Menu_Begin("Combo") then
 			self.Use_Combo_Q = Menu_Bool("Use Combo Q", self.Use_Combo_Q, self.menu)
-			self.Use_Combo_W = Menu_Bool("Use Combo W", self.Use_Combo_W, self.menu)
-			self.Enable_E = Menu_Bool("Enable E", self.Enable_E, self.menu)		
+            self.Use_Combo_W = Menu_Bool("Auto W", self.Use_Combo_W, self.menu)
+            self.AutoQStack = Menu_Bool("Auto Q", self.AutoQStack, self.menu)
+			self.Enable_E = Menu_Bool("Enable E", self.Enable_E, self.menu)
 			self.Enable_R = Menu_Bool("Enable R", self.Enable_R, self.menu)
-			self.Use_R_Kill_Steal = Menu_Bool("Use R Kill Steal", self.Use_R_Kill_Steal, self.menu)
+            self.Use_R_Kill_Steal = Menu_Bool("Use R Kill Steal", self.Use_R_Kill_Steal, self.menu)
+            self.Life = Menu_SliderInt("Hero Life Utimate", self.Life, 0, 100, self.menu)
+            self.MinInimigo = Menu_SliderInt("Range Heros {R}", self.MinInimigo, 0, 5, self.menu)
 			Menu_End()
-		end
-		if Menu_Begin("Key Mode") then
+        end
+        if Menu_Begin("LaneClear") then
+            self.UseQClear = Menu_Bool("Use Q Clear", self.UseQClear, self.menu)
+            self.UseEClear = Menu_Bool("Use E Clear", self.UseEClear, self.menu)
+            Menu_End()
+        end
+
+		if Menu_Begin("Keys Yasuo") then
 			self.menu_key_combo = Menu_KeyBinding("Combo", self.menu_key_combo, self.menu)
-			self.Lane_Clear = Menu_KeyBinding("Lane Clear", self.Lane_Clear, self.menu)
+            self.Lane_Clear = Menu_KeyBinding("Lane Clear", self.Lane_Clear, self.menu)
+            self.ActiveR = Menu_KeyBinding("Active R Utimate", self.ActiveR, self.menu)
+            self.Flee = Menu_KeyBinding("Flee {E}", self.Flee, self.menu)
+            self.Last_Hit = Menu_KeyBinding("Last Hit", self.Last_Hit, self.menu)
+            self.Harass = Menu_KeyBinding("Harass", self.Harass, self.menu)
 			Menu_End()
 		end
 		Menu_End()
@@ -179,11 +203,28 @@ function Yasuo:MenuKeyBinding(stringKey, valueDefault)
 	return ReadIniInteger(self.menu, stringKey, valueDefault)
 end
 
+function Yasuo:MenuSliderInt(stringKey, valueDefault)
+	return ReadIniInteger(self.menu, stringKey, valueDefault)
+end
+
+function Yasuo:IsAfterAttack()
+    if CanMove() and not CanAttack() then
+        return true
+    else
+        return false
+	end
+end
+
 function Yasuo:OnProcessSpell(unit, spell)
     if GetChampName(GetMyChamp()) ~= "Yasuo" then return end
-	if self.W:IsReady() and IsValidTarget(unit.Addr, 1500) then
-		if spell then
-			if W_SPELLS[spell.Name] and not unit.IsMe then
+	if self.W:IsReady()  and IsValidTarget(unit.Addr, 1500) then
+		if spell and unit.IsEnemy then
+			if myHero == spell.target and spell.Name:lower():find("attack") and (unit.AARange >= 450 or unit.IsRanged) then
+				local wPos = Vector(myHero) + (Vector(unit) - Vector(myHero)):Normalized() * self.W.range
+				CastSpellToPos(wPos.x, wPos.z, _W)
+			end
+			spell.endPos = {x=spell.DestPos_x, y=spell.DestPos_y, z=spell.DestPos_z}
+			if W_SPELLS[spell.Name] and not unit.IsMe and GetDistance(unit) <= GetDistance(unit, spell.endPos) then
 				CastSpellToPos(unit.x, unit.z, _W)
 			end
 		end
@@ -192,27 +233,25 @@ end
 
 
 function Yasuo:DashEndPos(target)
-    local point = 0
+    local Estent = 0
 
     if GetDistance(target) < 410 then
-        point = Vector(myHero):Extended(Vector(target), 485)
+        Estent = Vector(myHero):Extended(Vector(target), 475)
     else
-        point = Vector(myHero):Extended(Vector(target), GetDistance(target) + 65)
+        Estent = Vector(myHero):Extended(Vector(target), GetDistance(target) + 65)
     end
 
-    return point
+    return Estent
 end
 
 function Yasuo:IsMarked(target)
     return target.HasBuff("YasuoDashWrapper")
 end
 
-function Yasuo:GetGapMinion(target)
+function Yasuo:ClosetMinion(target)
+    GetAllUnitAroundAnObject(myHero.Addr, 1500)
     local bestMinion = nil
     local closest = 0
-
-    GetAllUnitAroundAnObject(myHero.Addr, 1500)
-
     local units = pUnit
     for i, unit in pairs(units) do
         if unit and unit ~= 0 and IsMinion(unit) and IsEnemy(unit) and not IsDead(unit) and not IsInFog(unit) and GetTargetableToTeam(unit) == 4 and not self:IsMarked(GetUnit(unit)) and GetDistance(GetUnit(unit)) < 375 then
@@ -233,16 +272,12 @@ function Yasuo:Combo(target)
             end
 
             if self.Enable_E then
-                local gapMinion = self:GetGapMinion(GetAIHero(target))
+                local gapMinion = self:ClosetMinion(GetAIHero(target))
 
                 if gapMinion and gapMinion ~= 0 then
                     self.E:Cast(gapMinion)
                 end
             end
-        end
-
-        if self.R:IsReady() and IsValidTarget(target, self.R.range) and getDmg(R, target) > GetHealthPoint(target) then 
-            self.R:Cast(target)
         end
 
         if self.Q:IsReady() and IsValidTarget(target, self.Q.range) then
@@ -257,58 +292,231 @@ function Yasuo:Combo(target)
     end
 end
 
+function Yasuo:AntiDashsing()
+  SearchAllChamp()
+  local Enemies = pObjChamp
+  for idx, enemy in ipairs(Enemies) do
+    if enemy ~= 0 then
+      if self.Q:IsReady() and IsValidTarget(enemy, self.Q.range) and IsDashing(enemy) and self.passiveTracker then
+            self.Q:Cast(enemy)
+		end
+    end
+  end
+end
+
+function Yasuo:AutoUtimatey()
+	local target = self.menu_ts:GetTarget()
+	if target ~= 0 then
+		local hero = GetAIHero(target)
+		if self.R:IsReady() and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) <= 1 and hero.HP*100/hero.MaxHP < self.Life then --solo
+			self.R:Cast(target)
+		end
+	end
+end
+
+function Yasuo:Utimatey(target)
+    if self.R:IsReady() and IsValidTarget(target, self.R.range) then
+        self.R:Cast(target)
+    end
+end
+
+function Yasuo:Fleey()
+    local mousePos = Vector(GetMousePos())
+    MoveToPos(mousePos.x,mousePos.z)
+    self.EnemyMinions:update()
+    for k, v in pairs(self.EnemyMinions.objects) do
+    if CanCast(E) and GetDistance(v) < self.E.range then
+        CastSpellTarget(v.Addr, _E)
+        end
+    end
+end
+
+function Yasuo:JungleClear()
+    GetAllUnitAroundAnObject(myHero.Addr, 2000)
+    local result = {}
+    for i, minions in pairs(pUnit) do
+        if minions ~= 0 and not IsDead(minions) and not IsInFog(minions) and GetType(minions) == 3 then
+            table.insert(result, minions)
+        end
+    end
+
+    return result
+end
+
+local function GetDistanceSqr(p1, p2)
+    p2 = p2 or GetOrigin(myHero)
+    return (p1.x - p2.x) ^ 2 + ((p1.z or p1.y) - (p2.z or p2.y)) ^ 2
+end
+
+
+function Yasuo:IsUnderTurretEnemy(pos)			
+	GetAllUnitAroundAnObject(myHero.Addr, 2000)
+	local objects = pUnit
+	for k,v in pairs(objects) do
+		if IsTurret(v) and not IsDead(v) and IsEnemy(v) and GetTargetableToTeam(v) == 4 then
+			local turretPos = Vector(GetPosX(v), GetPosY(v), GetPosZ(v))
+			if GetDistanceSqr(turretPos,pos) < 1300*1300 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+
+function Yasuo:FarmJungle(target)
+	for i, minions in ipairs(self:JungleClear()) do
+        if minions ~= 0 then
+		local jungle = GetUnit(minions)
+		if jungle.Type == 3 then
+
+	  if CanCast(_Q) then
+		if jungle ~= nil and GetDistance(jungle) < self.Q.range then
+			self.Q:Cast(jungle.Addr)
+        end
+	   end
+	  if CanCast(_E) then
+		if jungle ~= nil and GetDistance(jungle) < self.E.range then
+		  self.E:Cast(jungle.Addr)
+		end
+    end
+ end
+end
+end
+end
+
+function Yasuo:PositionDash(dashPos)
+	local Seguimento = self.E.range / 5;
+	local myHeroPos = Vector(myHero.x, myHero.y, myHero.z)
+	for i = 1, 5, 1 do
+		pos = myHeroPos:Extended(dashPos, i * Seguimento)
+		if IsWall(pos.x, pos.y, pos.z) then
+			return false
+		end
+	end
+
+	if self:IsUnderTurretEnemy(dashPos)  then
+		return false
+	end
+
+	local Check = 2 
+    local enemyCountDashPos = self:CountEnemiesInRange(dashPos, 600);
+    if Check > enemyCountDashPos then
+    	return true
+    end
+    local CountEnemy = CountEnemyChampAroundObject(myHero.Addr, 400)
+    if enemyCountDashPos <= CountEnemy then
+    	return true
+    end
+
+    return false
+end
+
+
+function Yasuo:WQ(target)
+    if self.W:IsReady() and self.Q:IsReady() and GetDistance(target) < 425 then
+        self.W:Cast(target)
+        self.Q:Cast(target)
+    end
+end
+
+function Yasuo:HarassQ3(target)
+    if self.Q:IsReady() and GetDistance(target) < self.Q.range and self.passiveTracker then
+        self.Q:Cast(target)
+    end
+end
+
+function Yasuo:UtimoHit()
+    self.EnemyMinions:update()
+    for k, v in pairs(self.EnemyMinions.objects) do
+        if CanCast(Q) and IsValidTarget(v, self.Q.range) then
+        CastSpellToPos(v.x,v.z, Q)
+        end 
+    end 
+end 
+
 function Yasuo:OnTick()
+
+	if IsDead(myHero.Addr) or IsTyping() or IsDodging() then return end
+
+	self.passiveTracker = false
+
     if GetSpellNameByIndex(myHero.Addr, _Q) == "YasuoQW" then
         self.Q.range = 425
         self.Q:SetSkillShot(0.25, math.huge, 30, false)
     elseif GetSpellNameByIndex(myHero.Addr, _Q) == "YasuoQ3W" then
+		self.passiveTracker = true
         self.Q.range = 1000
         self.Q:SetSkillShot(0.25, 1200, 90, false)
     end
 
-    if GetKeyPress(self.menu_key_combo) > 0 then	
+    self:AntiDashsing()
+    self:AutoUtimatey()
+
+    if GetKeyPress(self.Harass) > 0 then
+        self:UtimoHit()
+    end
+
+    if GetKeyPress(self.Flee) > 0 then
+        self:Fleey()
+        self:FleeJG()
+    end
+
+    if GetKeyPress(self.Lane_Clear) > 0 then
+		local target = self.menu_ts:GetTarget()
+		self:HarassQ3(target)
+        self:FarmClear()
+        self:FarmJungle()
+    end
+
+    if GetKeyPress(self.ActiveR) > 0 then
+        local target = self.menu_ts:GetTarget()
+        self:Utimatey(target)
+    end
+
+    if GetKeyPress(self.menu_key_combo) > 0 then
         local target = self.menu_ts:GetTarget()
         self:Combo(target)
+        self:UseR(target)
+        self:WQ(target)
     end
 end
 
-function Yasuo:OnCreateObject(obj)
-    if obj and obj.Type == 6 then
-        local missile = GetMissile(obj.Addr)
-
-        if missile then
-            if self.SpellData and self.SpellData[missile.OwnerCharName] then
-                local data = self.SpellData[missile.OwnerCharName]
-
-                if data and data[missile.Name:lower()] then
-                    local spell = data[missile.Name:lower()]
-
-                    local startPos = Vector(missile.SrcPos_x, missile.SrcPos_y, missile.SrcPos_z)
-                    local __endPos = Vector(missile.DestPos_x, missile.DestPos_y, missile.DestPos_z)
-                    local endPos = Vector(startPos):Extended(__endPos, missile.Range)
-
-                    table.insert(self.MissileSpellsData, {
-                        addr = missile.Addr,
-                        name = spell.name,
-                        slot = spell.slot,
-                        danger = spell.danger,
-                        isSkillshot = spell.isSkillshot,
-                        startPos = startPos,
-                        endPos = endPos,
-                        width = missile.Width,
-                        range = missile.Range,
-                        })
-                end
+function Yasuo:FleeJG()
+    local mousePos = Vector(GetMousePos())
+    MoveToPos(mousePos.x,mousePos.z)
+    for i, minions in ipairs(self:JungleClear()) do
+        if minions ~= 0 then
+        local jungle = GetUnit(minions)
+        if jungle.Type == 3 then
+        if CanCast(_E) then
+            if jungle ~= nil and GetDistance(jungle) < self.E.range then
+              self.E:Cast(jungle.Addr)
             end
+        end 
+    end 
+end 
+end 
+end
+
+function Yasuo:FarmClear()
+    self.EnemyMinions:update()
+        for k, v in pairs(self.EnemyMinions.objects) do
+            if CanCast(Q) and IsValidTarget(v, self.Q.range) and self.UseQClear then
+            CastSpellToPos(v.x,v.z, Q)
+            end
+            if Setting_IsLaneClearUseE() and CanCast(_E) and GetDistance(v) < self.E.range and self.UseEClear then
+            CastSpellTarget(v.Addr, _E)
         end
     end
 end
 
-function Yasuo:OnDeleteObject(obj)
-    for i, missile in pairs(self.MissileSpellsData) do
-        if missile.addr == obj.Addr then
-            table.remove(self.MissileSpellsData, i)
-        end
+function Yasuo:UseR(target)
+    if target ~= 0 then
+		local hero = GetAIHero(target)
+    if self.R:IsReady() and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) < self.MinInimigo and hero.HP*100/hero.MaxHP < self.Life then --solo
+        self.R:Cast(target)
+       end
     end
 end
 
@@ -316,35 +524,4 @@ function OnLoad()
 	if GetChampName(GetMyChamp()) == "Yasuo" then
 		Yasuo:__init()
     end
-end
-
-function getDmg(Spell, target)
-	local Damage = 0
-
-	if Spell == R then
-		if GetSpellLevel(GetMyChamp(),R) == 0 then return 0 end
-
-		local DamageSpellRTable = {175, 275, 375}
-
-		local Percent_Bonus_AD = 1
-
-		local Damage_Bonus_AD = GetFlatPhysicalDamage(GetMyChamp())
-
-		local DamageSpellR = DamageSpellRTable[GetSpellLevel(GetMyChamp(),R)]
-
-		local Enemy_Armor = GetArmor(Enemy)
-
-		local ArmorPenetration = 60 * GetArmorPenetration(GetMyChamp()) / 100 + (1 - 60/100) * GetArmorPenetration(GetMyChamp()) * GetLevel(target) / 18
-
-		Enemy_Armor = Enemy_Armor - ArmorPenetration
-
-		if Enemy_Armor >= 0 then
-			Damage = (DamageSpellR + Percent_Bonus_AD * Damage_Bonus_AD) * (100/(100 + Enemy_Armor))
-		else
-			Damage = (DamageSpellR + Percent_Bonus_AD * Damage_Bonus_AD) * (2 - 100/(100 - Enemy_Armor))
-		end
-
-		return Damage
-	end
-
 end
