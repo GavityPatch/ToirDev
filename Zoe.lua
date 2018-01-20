@@ -50,7 +50,7 @@ function Zoe:__init()
     self.Q = Spell(_Q, 900)
     self.W = Spell(_W, 150)
     self.E = Spell(_E, 725)
-    self.R = Spell(_R, 850)
+    self.R = Spell(_R, 550)
     self.Q:SetSkillShot(0.25, 1500, 100, true)
     self.W:SetActive()
     self.E:SetSkillShot(0.25, 2100, 100, true)
@@ -216,7 +216,7 @@ end
 function Zoe:LogicR(target)
 	local target = self.menu_ts:GetTarget()
 	if target ~= 0 then
-		if self.Q:IsReady() or self.E:IsReady() and self.R:IsReady() and IsValidTarget(target, self.R.range) then
+		if self.R:IsReady() and self.E:IsReady() and self.Q:IsReady() and IsValidTarget(target, self.R.range) then
 			self.R:Cast(target)
 		end 
 	end 
