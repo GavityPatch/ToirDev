@@ -14,7 +14,16 @@ function Zoe:__init()
 
 	vpred = VPrediction(true)
     self.MissileSpellsData = {}
-    self.Bolagrande = {}
+	self.Bolagrande = {}
+	
+	self.objList = {}
+	self.trackList = {}
+	---self.passtiveList = {["Zoe_Base_Q_Mis_Linger"]}
+
+	self.QCasted = {}
+	self.EnemyData = {}
+	self.MissileSpellsData = {}
+	self.QMilles = true
 
     self:MenuZoe()
 
@@ -47,11 +56,11 @@ function Zoe:__init()
     ["rocketgrabmissile"] 			= {},
 	}
 
-    self.Q = Spell(_Q, 900)
+	self.Q = Spell(_Q, 900)
     self.W = Spell(_W, 150)
     self.E = Spell(_E, 725)
-    self.R = Spell(_R, 550)
-    self.Q:SetSkillShot(0.25, 1500, 100, true)
+    self.R = Spell(_R, 1450)
+	self.Q:SetSkillShot(0.25, 1500, 100, true)
     self.W:SetActive()
     self.E:SetSkillShot(0.25, 2100, 100, true)
     self.R:SetSkillShot(0.25, 500, 100, true)
@@ -59,6 +68,8 @@ function Zoe:__init()
     Callback.Add("Tick", function(...) self:OnTick(...) end)
 	Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 	Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
+	Callback.Add("CreateObject", function(...) self:OnCreateObject(...) end)
+	Callback.Add("DeleteObject", function(...) self:OnDeleteObject(...) end)
 
 end 
 
@@ -117,6 +128,14 @@ function Zoe:OnProcessSpell(unit, spell)
     end
 end 
 
+function Zoe:IsImmobileTarget(unit)
+	if (CountBuffByType(unit, 5) == 1 or CountBuffByType(unit, 11) == 1 or CountBuffByType(unit, 29) == 1 or CountBuffByType(unit, 24) == 1 or CountBuffByType(unit, 10) == 1 or CountBuffByType(unit, 29) == 1) then
+		return true
+	end
+	return false
+end
+
+
 function Zoe:MenuBool(stringKey, bool)
 	return ReadIniBoolean(self.menu, stringKey, bool)
 end
@@ -150,12 +169,34 @@ function Zoe:CountEnemyInLine(target)
     return NH
 end
 
+--[[function Zoe:DashEnd()
+	SearchAllChamp()
+	local Enemies = pObjChamp
+	for idx, enemy in ipairs(Enemies) do
+	  if enemy ~= 0 then
+		if CanCast(_R) and GetDistance(enemy) < 260 and CanMove() and IsDashing(enemy) then
+		  if not IsWall(enemy.x,enemy.y,enemy.z) then
+			CastSpellToPos(enemy.x + self.R.range, enemy.z, _R)
+		  end
+		  if not IsWall(enemy.x,enemy.y,enemy.z + self.R.range) then
+			CastSpellToPos(enemy.x, enemy.z + self.R.range, _R)
+		  end
+		end
+	  end
+	end
+end]]
+
 function Zoe:OnTick()
 	if IsDead(myHero.Addr) then return end
 	SetLuaCombo(true)
 
-	self:KillSteal()
+	if GetSpellNameByIndex(myHero.Addr, _Q) == "ZoeQRecast" then
+        self.QMilles = true
+    else
+    	self.QMilles = false
+    end
 
+	self:KillSteal()
 
     if GetKeyPress(self.Combo) > 0 then	
         self:LogicQ(target)
@@ -195,8 +236,8 @@ function Zoe:LogicQ(target)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
 		local Collision = CountObjectCollision(0, target.Addr, myHero.x, myHero.z, CastPosition.x, CastPosition.z, self.Q.width, self.Q.range, 65)
 		if Collision == 0 and HitChance >= 2 then
-			CastSpellToPos(CastPosition.x, CastPosition.y, _Q)
-			DelayAction(function() CastSpellToPos(CastPosition.x, CastPosition.z, _Q) end, 0.25)
+			CastSpellToPos_2(CastPosition.x, CastPosition.y, _Q)
+			DelayAction(function() CastSpellToPos_2(CastPosition.x, CastPosition.z, _Q) end, 0.25)
 		end
 	end
 end
@@ -214,11 +255,62 @@ function Zoe:LogicE(target)
 end
 
 function Zoe:LogicR(target)
-	local target = self.menu_ts:GetTarget()
-	if target ~= 0 then
-		if self.R:IsReady() and self.E:IsReady() and self.Q:IsReady() and IsValidTarget(target, self.R.range) then
-			self.R:Cast(target)
+	local TargetR = GetTargetSelector(self.R.range)
+	if CanCast(_R) and TargetR ~= 0 and self.QMilles then
+		target = GetAIHero(TargetR)
+		local CastPosition, HitChance, Position = vpred:GetCircularCastPosition(target, self.R.delay, self.R.width, self.R.range, self.R.speed, myHero, false)
+		if HitChance >= 2 then
+			CastSpellToPos(CastPosition.x, CastPosition.z, _R)
 		end 
 	end 
 end 
 
+function Zoe:OnCreateObject(obj)
+	if string.find(obj.Name, "Zoe_Base_Q_Mis_Linger") and obj.IsValid and not IsDead(obj.Addr) then
+		self.QCasted[obj.NetworkId] = obj
+	end
+
+	if obj and obj.Type == 6 then
+		local missile = GetMissile(obj.Addr)
+
+		if missile then
+			if self.SpellData and self.SpellData[missile.OwnerCharName] then
+				local data = self.SpellData[missile.OwnerCharName]
+
+				if data and data[missile.Name:lower()] then
+					local spell = data[missile.Name:lower()]
+
+					local startPos = Vector(missile.SrcPos_x, missile.SrcPos_y, missile.SrcPos_z)
+					local __endPos = Vector(missile.DestPos_x, missile.DestPos_y, missile.DestPos_z)
+					local endPos = Vector(startPos):Extended(__endPos, missile.Range)
+
+					table.insert(self.MissileSpellsData, {
+						addr = missile.Addr,
+						name = spell.name,
+						slot = spell.slot,
+						danger = spell.danger,
+						isSkillshot = spell.isSkillshot,
+						startPos = startPos,
+						endPos = endPos,
+						width = missile.Width,
+						range = missile.Range,
+						})
+				end
+			end
+		end
+	end
+end
+
+function Zoe:OnDeleteObject(obj)
+	for i, Ball in pairs(self.QCasted) do
+		if Ball.Addr == obj.Addr then
+			table.remove(self.QCasted, i)
+		end
+	end
+
+	for i, missile in pairs(self.MissileSpellsData) do
+		if missile.addr == obj.Addr then
+			table.remove(self.MissileSpellsData, i)
+		end
+	end
+end
