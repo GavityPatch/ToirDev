@@ -35,7 +35,7 @@ function Jhin:__init()
     --Callback.Add("DoCast", function(...) self:OnDoCast(...) end)
     Callback.Add("UpdateBuff", function(...) self:OnUpdateBuff(...) end)
     Callback.Add("RemoveBuff", function(...) self:OnRemoveBuff(...) end)
-	Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
+	--Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
 	--Callback.Add("CreateObject", function(...) self:OnCreateObject(...) end)
 	--Callback.Add("DeleteObject", function(...) self:OnDeleteObject(...) end)
 
@@ -153,7 +153,8 @@ function Jhin:OnTick()
 	SetLuaCombo(true)
 
     self:KillSteal()
-    self:AutoWIsMarked()
+	self:AutoWIsMarked()
+	self:UtimateJhin()
 
     if GetSpellNameByIndex(myHero.Addr, _R) == "JhinRShot" then
         self.UtiOn = true
@@ -162,7 +163,6 @@ function Jhin:OnTick()
     end
     
     if GetKeyPress(self.Ativasao_da_utimate) > 0 then	
-        self:UtimateJhin()
         self:AtivandoUti()
     end 
 
@@ -182,17 +182,6 @@ function Jhin:IsAfterAttack()
 	end
 end
 
-function Jhin:OnProcessSpell(unit, spell)
-    if unit.IsEnemy and spell.Name:lower():find("attack") and self.Combo then
-        local target = self.menu_ts:GetTarget()
-    if target ~= 0 then
-        if self.Q:IsReady() and IsValidTarget(target, self.Q.range) then
-            self.Q:Cast(target)
-          end 
-       end 
-    end  
-end 
-
 function Jhin:AutoWIsMarked()
 	local TargetW = GetTargetSelector(self.W.range)
 	if TargetW ~= nil and self.IsMarked and IsValidTarget(TargetW, self.W.range) and CanCast(_W) then
@@ -207,7 +196,7 @@ end
 
 function Jhin:KillSteal()
 	local TargetW = GetTargetSelector(self.W.range)
-	if TargetW ~= nil and IsValidTarget(TargetW, self.W.range) and CanCast(_W) then
+	if TargetW ~= nil and IsValidTarget(TargetW, self.W.range) and CanCast(_W) and not self.UtiOn then
 		targetW = GetAIHero(TargetW)
 
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(targetW, self.W.delay, self.W.width, self.W.range, self.W.speed, myHero, false)
@@ -227,7 +216,7 @@ end
 
 function Jhin:LogicW()
         local TargetW = GetTargetSelector(self.W.range)
-        if TargetW ~= nil and IsValidTarget(TargetW, self.W.range) and CanCast(_W) and self:IsAfterAttack() then
+        if TargetW ~= nil and IsValidTarget(TargetW, self.W.range) and CanCast(_W) and self:IsAfterAttack(target) then
             targetW = GetAIHero(TargetW)
             local CastPosition, HitChance, Position = vpred:GetLineCastPosition(targetW, self.W.delay, self.W.width, self.W.range, self.W.speed, myHero, false)
             if HitChance >= 2 then
