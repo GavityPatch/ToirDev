@@ -31,7 +31,8 @@ function Jhin:__init()
     self.R:SetSkillShot(0.25, 500, 100, true)
 
     Callback.Add("Tick", function(...) self:OnTick(...) end)
-    Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
+	Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
+	Callback.Add("Draw", function(...) self:OnDraw(...) end)
     --Callback.Add("DoCast", function(...) self:OnDoCast(...) end)
     Callback.Add("UpdateBuff", function(...) self:OnUpdateBuff(...) end)
     Callback.Add("RemoveBuff", function(...) self:OnRemoveBuff(...) end)
@@ -109,6 +110,15 @@ local function GetDistanceSqr(p1, p2)
     return (p1.x - p2.x) ^ 2 + ((p1.z or p1.y) - (p2.z or p2.y)) ^ 2
 end
 
+function Jhin:OnDraw()
+	if self.W:IsReady() then
+		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.W.range, Lua_ARGB(255,255,0,0))
+	end
+	if self.R:IsReady() then
+		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.R.range, Lua_ARGB(255,0,0,255))
+	end
+end
+
 function Jhin:CountEnemyInLine(target)
 	local myHeroPos = Vector(myHero.x, myHero.y, myHero.z)
     local targetPos = Vector(target.x, target.y, target.z)
@@ -166,7 +176,8 @@ function Jhin:OnTick()
         self:AtivandoUti()
     end 
 
-    if GetKeyPress(self.Combo) > 0 then	
+	if GetKeyPress(self.Combo) > 0 then	
+		self:LogicQ()
         self:LogicW()
 		self:LogicE()
         --self:LogicR()
@@ -213,6 +224,16 @@ function Jhin:KillSteal()
 		end
     end
 end 
+
+function Jhin:LogicQ()
+	local target = self.menu_ts:GetTarget()
+	if target ~= 0 then
+	if self.Q:IsReady() and IsValidTarget(target, self.Q.range) then
+		self.Q:Cast(target)
+	end
+	end
+end  
+
 
 function Jhin:LogicW()
         local TargetW = GetTargetSelector(self.W.range)
