@@ -25,6 +25,8 @@ function Zoe:__init()
 	self.MissileSpellsData = {}
 	self.QMilles = true
 
+	self.EnemyMinions = minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_HEALTH_ASC)
+
     self:MenuZoe()
 
 	self.Spells =
@@ -186,6 +188,30 @@ end
 	end
 end]]
 
+function Zoe:ColisionE(vector)
+	return IsWall(vector.x,vector.y,vector.z)
+end
+
+function Zoe:IsImmobileTarget(unit)
+	if (CountBuffByType(unit, 5) == 1 or CountBuffByType(unit, 11) == 1 or CountBuffByType(unit, 29) == 1 or CountBuffByType(unit, 24) == 1 or CountBuffByType(unit, 10) == 1 or CountBuffByType(unit, 18) == 1) then
+		return true
+	end
+	return false
+end
+
+function Zoe:AutoMobili()
+	local target = self.menu_ts:GetTarget()
+	if target ~= 0 then
+		if self.E:IsReady() and IsValidTarget(target, self.E.range) and self:IsImmobileTarget(target) then
+			local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.E.delay, self.E.width, self.E.range, self.E.speed, myHero, false)
+			local Collision = CountObjectCollision(0, target.Addr, myHero.x, myHero.z, CastPosition.x, CastPosition.z, self.E.width, self.E.range, 65)
+			if Collision == 0 and HitChance >= 2 then
+				CastSpellToPos(CastPosition.x, CastPosition.z, _E)
+			end
+		end 
+	end 
+end 
+
 function Zoe:OnTick()
 	if IsDead(myHero.Addr) then return end
 	SetLuaCombo(true)
@@ -197,15 +223,48 @@ function Zoe:OnTick()
     end
 
 	self:KillSteal()
+	self:AutoMobili()
+
+	--[[if GetKeyPress(self.Lane_Clear) > 0 then	
+         self:LaneClearQ()
+	end]] 
 
     if GetKeyPress(self.Combo) > 0 then	
         self:LogicQ(target)
         --self:CastW(target)
 		self:LogicE(target)
-        self:LogicR(target)
+		self:LogicR(target)
+		self:LogicMobili()
     end
 end 
 
+function Zoe:LogicMobili()
+	local target = self.menu_ts:GetTarget()
+	if target ~= 0 then
+		if self.Q:IsReady() and self.R:IsReady() and GetDistance(target) < self.Q.range + self.R.range and self:IsImmobileTarget(target) then
+			local CastPositionQ, HitChance, Position = vpred:GetLineCastPosition(target, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
+			local CastPositionR, HitChance, Position = vpred:GetCircularCastPosition(target, self.R.delay, self.R.width, self.R.range, self.R.speed, myHero, false)
+			if HitChance >= 2 then
+				CastSpellToPos_2(CastPosition.x, CastPosition.y, _Q)
+				DelayAction(function() CastSpellToPos_2(CastPosition.x, CastPosition.z, _Q) end, 0.25)
+				CastSpellToPos(CastPosition.x, CastPosition.z, _R)
+			end 
+		end 
+	end 
+end 
+
+--[[function Zoe:LaneClearQ()
+   self.EnemyMinions:update()
+    for k, v in pairs(self.EnemyMinions.objects) do
+		if CanCast(_Q) and IsValidTarget(v, self.Q.range) and v.IsEnemy then
+			local CastPosition, HitChance, Position = vpred:GetLineCastPosition(v, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
+			if HitChance >= 2 then
+				CastSpellToPos_2(CastPosition.x, CastPosition.y, _Q)
+				DelayAction(function() CastSpellToPos_2(CastPosition.x, CastPosition.z, _Q) end, 0.25)
+			end
+		end 
+	end 
+end]] 
 
 function Zoe:KillSteal()
 	local TargetQ = GetTargetSelector(self.Q.range)
