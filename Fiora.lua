@@ -856,8 +856,8 @@ function Fiora:__init()
 		--Spells
 		self.Q = Spell(_Q, 425)
 		self.W = Spell(_W, 600)
-        self.E = Spell(_E, 475)
-        self.R = Spell(_R, 1200)
+      self.E = Spell(_E, 475)
+      self.R = Spell(_R, 1200)
 
         self.W:SetSkillShot()
         self.E:SetTargetted()
@@ -891,6 +891,7 @@ function Fiora:MenuFiora()
     self.Basic = self:MenuBool("Use Combo Basic", false)
     self.Medium = self:MenuBool("Use Combo Medium ", true)
     self.Hard = self:MenuBool("Use Combo Hard ", true)
+    self.AutoEMana = self:MenuSliderInt("Mana min Auto E", 30)
 
 	self.Enable_R = self:MenuBool("Enable R", true)
     self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
@@ -911,6 +912,7 @@ function Fiora:OnDrawMenu()
 			self.Basic = Menu_Bool("Use Combo Basic", self.Basic, self.menu)
             self.Hard = Menu_Bool("Use Combo Medium", self.Hard, self.menu)
             self.Medium = Menu_Bool("Use Combo Hard", self.Medium, self.menu)
+            self.AutoEMana = Menu_SliderInt("Mana AutoE", self.AutoEMana, 0, 100,  self.menu)
             Menu_End()
         end
         if Menu_Begin("Config {R}") then
@@ -1008,7 +1010,7 @@ end
 
 function Fiora:OnProcessSpell(unit, spell)
     if GetChampName(GetMyChamp()) ~= "Fiora" then return end
-	if self.W:IsReady()  and IsValidTarget(unit.Addr, 800) then
+	if self.W:IsReady()  and IsValidTarget(unit.Addr, 1500) then
 		if spell and unit.IsEnemy then
 			if myHero == spell.target and spell.Name:lower():find("attack") and (unit.AARange >= 450 or unit.IsRanged) then
 				local wPos = Vector(myHero) + (Vector(unit) - Vector(myHero)):Normalized() * self.W.range
