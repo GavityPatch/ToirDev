@@ -132,7 +132,7 @@ function Olaf:__init()
 
 		Callback.Add("Tick", function() self:OnTick() end) --Call Back Olaf <3 by: DevkAT
 		--Callback.Add("Draw", function() self:OnDraw() end)
-        Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
+        --Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
         Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 end
 
@@ -145,10 +145,10 @@ function Olaf:MenuOlaf()
 
 	self.Enable_E = self:MenuBool("Enable E", true)
 
-	self.Enable_R = self:MenuBool("Evade R", true)
+	--self.Enable_R = self:MenuBool("Evade R", true)
     self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
     self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
-    self.LifeEvade = self:MenuSliderInt("Evade Life", 30)
+    --self.LifeEvade = self:MenuSliderInt("Evade Life", 30)
     self.Lifetarget = self:MenuSliderInt("Hero Enemy Life Utimate", 50)
     self.MinInimigo = self:MenuSliderInt("Range Heros {R}", 2)
 
@@ -181,8 +181,8 @@ function Olaf:OnDrawMenu()
             Menu_End()
         end
         if Menu_Begin("Evade") then
-            self.Enable_R = Menu_Bool("Evade R", self.Enable_R, self.menu)
-            self.LifeEvade = Menu_SliderInt("Hero Enemy Life Utimate", self.LifeEvade, 0, 100, self.menu)
+            --self.Enable_R = Menu_Bool("Evade R", self.Enable_R, self.menu)
+            --self.LifeEvade = Menu_SliderInt("Hero Enemy Life Utimate", self.LifeEvade, 0, 100, self.menu)
             Menu_End()
         end
         if Menu_Begin("JungleClear") then
@@ -224,7 +224,7 @@ function Olaf:IsAfterAttack()
 	end
 end
 
-function Olaf:OnProcessSpell(unit, spell)
+--[[function Olaf:OnProcessSpell(unit, spell)
     if GetChampName(GetMyChamp()) ~= "Olaf" then return end
 	if self.W:IsReady()  and IsValidTarget(unit.Addr, 1500) then
 		if spell and unit.IsEnemy and myHero.HP*100/myHero.MaxHP < self.LifeEvade and self.Enable_R then
@@ -238,7 +238,7 @@ function Olaf:OnProcessSpell(unit, spell)
 			end
 		end
 	end
-end
+end]]
 
 function Olaf:JungleClear()
     GetAllUnitAroundAnObject(myHero.Addr, 2000)
