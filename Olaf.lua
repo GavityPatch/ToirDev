@@ -142,7 +142,6 @@ function Olaf:MenuOlaf()
 
 	self.Enable_E = self:MenuBool("Enable E", true)
 
-	self.Enable_R = self:MenuBool("Use R", true)
     self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
     self.Lifetarget = self:MenuSliderInt("Hero Enemy Life Utimate", 50)
     self.MinInimigo = self:MenuSliderInt("Range Heros {R}", 2)
@@ -295,7 +294,7 @@ function Olaf:LogicR()
     local target = self.menu_ts:GetTarget()
 	if target ~= 0 and IsEnemy(target) then
 		local hero = GetAIHero(target)
-		if self.R:IsReady() and IsValidTarget(target, self.R.range) and self.Enable_R and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
+		if self.R:IsReady() and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
 			self.R:Cast(target)
 		end
 	end
