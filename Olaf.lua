@@ -130,7 +130,8 @@ function Olaf:__init()
         self.E:SetTargetted()
         self.R:SetActive()
 
-		Callback.Add("Tick", function() self:OnTick() end) --Call Back Olaf <3 by: DevkAT
+        Callback.Add("Tick", function() self:OnTick() end) --Call Back Olaf <3 by: DevkAT
+        Callback.Add("Draw", function(...) self:OnDraw(...) end)
         Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 end
 
@@ -141,6 +142,10 @@ function Olaf:MenuOlaf()
     self.Use_Combo_W = self:MenuBool("Use W", true)
 
 	self.Enable_E = self:MenuBool("Enable E", true)
+    self.Enable_R = self:MenuBool("Enable R", true)
+
+    self.DrawW = self:MenuBool("Draw {W}", true)
+	self.DrawR = self:MenuBool("Draw {R}", true)
 
     self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
     self.Lifetarget = self:MenuSliderInt("Hero Enemy Life Utimate", 50)
@@ -165,6 +170,7 @@ function Olaf:OnDrawMenu()
 			Menu_End()
         end
         if Menu_Begin("Logic {R}") then
+            self.Enable_R = Menu_Bool("Use R Logic?", self.Enable_R, self.menu)
             self.Life = Menu_SliderInt("Hero Life Utimate", self.Life, 0, 100, self.menu)
             self.Lifetarget = Menu_SliderInt("Hero Enemy Life Utimate", self.Lifetarget, 0, 100, self.menu)
             self.MinInimigo = Menu_SliderInt("Range Heros {R}", self.MinInimigo, 0, 5, self.menu)
@@ -177,7 +183,11 @@ function Olaf:OnDrawMenu()
             self.ManaJungle = Menu_SliderInt("Mana Jungle", self.ManaJungle, 0, 100, self.menu)
             Menu_End()
         end
-
+        if Menu_Begin("Drawings") then
+			self.DrawW = Menu_Bool("Draw {Q}", self.DrawW, self.menu)
+			self.DrawR = Menu_Bool("Draw {E}", self.DrawR, self.menu)
+			Menu_End()
+		end
 		if Menu_Begin("Keys Olaf") then
 			self.menu_key_combo = Menu_KeyBinding("Combo", self.menu_key_combo, self.menu)
             self.Lane_Clear = Menu_KeyBinding("Lane Clear", self.Lane_Clear, self.menu)
@@ -198,6 +208,16 @@ end
 
 function Olaf:MenuSliderInt(stringKey, valueDefault)
 	return ReadIniInteger(self.menu, stringKey, valueDefault)
+end
+
+
+function Olaf:OnDraw()
+	if self.Q:IsReady() and self.DrawW then
+		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.Q.range, Lua_ARGB(255,255,0,0))
+	end
+	if self.E:IsReady() and self.DrawR then
+		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.E.range, Lua_ARGB(255,0,0,255))
+	end
 end
 
 function Olaf:IsAfterAttack()
@@ -224,7 +244,7 @@ function Olaf:FarmJungle(target)
 	for i, minions in ipairs(self:JungleClear()) do
         if minions ~= 0 then
 		local jungle = GetUnit(minions)
-		if jungle.Type == 3 and GetPercentMP(myHero.Addr) >= self.ManaJungle then 
+		if GetPercentMP(myHero.Addr) >= self.ManaJungle then 
 
 	  if CanCast(_Q) then
 		if jungle ~= nil and GetDistance(jungle) < self.Q.range and self.UseQClear then
@@ -294,7 +314,7 @@ function Olaf:LogicR()
     local target = self.menu_ts:GetTarget()
 	if target ~= 0 and IsEnemy(target) then
 		local hero = GetAIHero(target)
-		if self.R:IsReady() and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
+		if self.R:IsReady() and self.Enable_R and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
 			self.R:Cast(target)
 		end
 	end
