@@ -139,14 +139,12 @@ end
 function Olaf:MenuOlaf()
 	self.menu = "Olaf"
     self.Use_Combo_Q = self:MenuBool("Use Combo Q", true)
-    self.AutoQStack = self:MenuBool("Auto Q", true)
 
-    self.Use_Combo_W = self:MenuBool("Auto W", true)
+    self.Use_Combo_W = self:MenuBool("Use W", true)
 
 	self.Enable_E = self:MenuBool("Enable E", true)
 
 	self.Enable_R = self:MenuBool("Evade R", true)
-    self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
     self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
     self.LifeEvade = self:MenuSliderInt("Evade Life", 30)
     self.Lifetarget = self:MenuSliderInt("Hero Enemy Life Utimate", 50)
@@ -168,10 +166,6 @@ function Olaf:OnDrawMenu()
 			self.Use_Combo_Q = Menu_Bool("Use Combo Q", self.Use_Combo_Q, self.menu)
             self.Use_Combo_W = Menu_Bool("Use Combo W", self.Use_Combo_W, self.menu)
 			self.Enable_E = Menu_Bool("Use Combo E", self.Enable_E, self.menu)
-			--self.Enable_R = Menu_Bool("Enable R", self.Enable_R, self.menu)
-            --self.Use_R_Kill_Steal = Menu_Bool("Use R Kill Steal", self.Use_R_Kill_Steal, self.menu)
-            --self.Life = Menu_SliderInt("Hero Life Utimate", self.Life, 0, 100, self.menu)
-            --self.MinInimigo = Menu_SliderInt("Range Heros {R}", self.MinInimigo, 0, 5, self.menu)
 			Menu_End()
         end
         if Menu_Begin("Logic {R}") then
@@ -259,17 +253,17 @@ function Olaf:FarmJungle(target)
 		if jungle.Type == 3 and GetPercentMP(myHero.Addr) >= self.ManaJungle then 
 
 	  if CanCast(_Q) then
-		if jungle ~= nil and GetDistance(jungle) < self.Q.range then
+		if jungle ~= nil and GetDistance(jungle) < self.Q.range and self.UseQClear then
 			self.Q:Cast(jungle.Addr)
         end
        end
        if CanCast(_W) then
-		if jungle ~= nil and GetDistance(jungle) < self.W.range then
+		if jungle ~= nil and GetDistance(jungle) < self.W.range and self.UseWClear then
 			self.W:Cast(myHero.Addr)
         end
 	   end
 	  if CanCast(_E) then
-		if jungle ~= nil and GetDistance(jungle) < self.E.range then
+		if jungle ~= nil and GetDistance(jungle) < self.E.range and self.UseEClear then
 		  self.E:Cast(jungle.Addr)
 		end
     end
@@ -295,7 +289,7 @@ end
 
 function Olaf:LogicQ()
 	local TargetQ = GetTargetSelector(self.Q.range)
-	if CanCast(_Q) and CanMove() and TargetQ ~= 0 then
+	if CanCast(_Q) and CanMove() and self.Use_Combo_Q and TargetQ ~= 0 then
 		target = GetAIHero(TargetQ)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
 		--local Collision = CountObjectCollision(0, target.Addr, myHero.x, myHero.z, CastPosition.x, CastPosition.z, self.Q.width, self.Q.range, 65)
@@ -307,7 +301,7 @@ end
 
 function Olaf:LogicW()
     local target = self.menu_ts:GetTarget()
-    if target ~= 0 then
+    if target ~= 0 and self.Use_Combo_W then
     if self.W:IsReady() and IsValidTarget(target, GetTrueAttackRange()) then
         self.W:Cast()
         end 
@@ -316,7 +310,7 @@ end
 
 function Olaf:LogicE()
 	local TargetE = GetTargetSelector(self.E.range)
-	if CanCast(_E) and CanMove() and TargetE ~= 0 then
+	if CanCast(_E) and CanMove() and self.Enable_E and TargetE ~= 0 then
         target = GetAIHero(TargetE)
         CastSpellTarget(target.Addr, _E)
     end 
