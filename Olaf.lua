@@ -131,8 +131,6 @@ function Olaf:__init()
         self.R:SetActive()
 
 		Callback.Add("Tick", function() self:OnTick() end) --Call Back Olaf <3 by: DevkAT
-		--Callback.Add("Draw", function() self:OnDraw() end)
-        Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
         Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 end
 
@@ -144,9 +142,8 @@ function Olaf:MenuOlaf()
 
 	self.Enable_E = self:MenuBool("Enable E", true)
 
-	self.Enable_R = self:MenuBool("Evade R", true)
+	self.Enable_R = self:MenuBool("Use R", true)
     self.Life = self:MenuSliderInt("Hero Life Utimate", 50)
-    self.LifeEvade = self:MenuSliderInt("Evade Life", 30)
     self.Lifetarget = self:MenuSliderInt("Hero Enemy Life Utimate", 50)
     self.MinInimigo = self:MenuSliderInt("Range Heros {R}", 2)
 
@@ -172,11 +169,6 @@ function Olaf:OnDrawMenu()
             self.Life = Menu_SliderInt("Hero Life Utimate", self.Life, 0, 100, self.menu)
             self.Lifetarget = Menu_SliderInt("Hero Enemy Life Utimate", self.Lifetarget, 0, 100, self.menu)
             self.MinInimigo = Menu_SliderInt("Range Heros {R}", self.MinInimigo, 0, 5, self.menu)
-            Menu_End()
-        end
-        if Menu_Begin("Evade") then
-            self.Enable_R = Menu_Bool("Evade R", self.Enable_R, self.menu)
-            self.LifeEvade = Menu_SliderInt("Hero Enemy Life Utimate", self.LifeEvade, 0, 100, self.menu)
             Menu_End()
         end
         if Menu_Begin("JungleClear") then
@@ -215,22 +207,6 @@ function Olaf:IsAfterAttack()
         return true
     else
         return false
-	end
-end
-
-function Olaf:OnProcessSpell(unit, spell)
-    if GetChampName(GetMyChamp()) ~= "Olaf" then return end
-	if self.W:IsReady()  and IsValidTarget(unit.Addr, 1500) then
-		if spell and unit.IsEnemy and myHero.HP*100/myHero.MaxHP < self.LifeEvade and self.Enable_R then
-			if myHero == spell.target and spell.Name:lower():find("attack") and (unit.AARange >= 450 or unit.IsRanged) then
-				local wPos = Vector(myHero) + (Vector(unit) - Vector(myHero)):Normalized() * self.W.range
-				CastSpellTarget(myHero.Addr, _R)
-			end
-			spell.endPos = {x=spell.DestPos_x, y=spell.DestPos_y, z=spell.DestPos_z}
-			if W_SPELLS[spell.Name] and unit.IsMe and GetDistance(unit) <= GetDistance(unit, spell.endPos) and myHero.HP*100/myHero.MaxHP < self.LifeEvade and self.Enable_R then
-				CastSpellTarget(myHero.Addr, _R)
-			end
-		end
 	end
 end
 
@@ -320,7 +296,7 @@ function Olaf:LogicR()
     local target = self.menu_ts:GetTarget()
 	if target ~= 0 and IsEnemy(target) then
 		local hero = GetAIHero(target)
-		if self.R:IsReady() and IsValidTarget(target, self.R.range) and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
+		if self.R:IsReady() and IsValidTarget(target, self.R.range) and self.Enable_R and CountEnemyChampAroundObject(target, self.R.range) <= self.MinInimigo and hero.HP*100/hero.MaxHP < self.Lifetarget and GetPercentHP(myHero.Addr) < self.Life then --solo
 			self.R:Cast(target)
 		end
 	end
