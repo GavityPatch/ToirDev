@@ -132,7 +132,7 @@ function Olaf:__init()
 
 		Callback.Add("Tick", function() self:OnTick() end) --Call Back Olaf <3 by: DevkAT
 		--Callback.Add("Draw", function() self:OnDraw() end)
-        --Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
+        Callback.Add("ProcessSpell", function(...) self:OnProcessSpell(...) end)
         Callback.Add("DrawMenu", function(...) self:OnDrawMenu(...) end)
 end
 
