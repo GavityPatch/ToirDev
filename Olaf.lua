@@ -182,7 +182,6 @@ function Olaf:OnDrawMenu()
 		if Menu_Begin("Keys Olaf") then
 			self.menu_key_combo = Menu_KeyBinding("Combo", self.menu_key_combo, self.menu)
             self.Lane_Clear = Menu_KeyBinding("Lane Clear", self.Lane_Clear, self.menu)
-            self.Last_Hit = Menu_KeyBinding("Last Hit", self.Last_Hit, self.menu)
             self.Harass = Menu_KeyBinding("Harass", self.Harass, self.menu)
 			Menu_End()
 		end
