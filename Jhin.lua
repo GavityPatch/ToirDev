@@ -44,17 +44,17 @@ end
 
 function Jhin:MenuJhin()
 	self.menu = "Jhin"
-    self.AfterQ = self:MenuBool("Use After Attack Q", true)
+    self.AfterQ = self:MenuBool("Use Q", true)
 	self.Auto_Q_Kill_Steal = self:MenuBool("Auto Q Kill Steal", true)
 
-	self.Use_Combo_W = self:MenuBool("Use Combo W", false)
-	self.Use_W_Anti_GapClose = self:MenuBool("Use W Anti GapClose", true)
+	self.Use_Combo_W = self:MenuBool("Use Combo W", true)
 
-	self.Enable_E = self:MenuBool("Enable E", true)
-	self.Use_Combo_E = self:MenuBool("Use Combo E", false)
-	self.UseE_Anti_GapClose = self:MenuBool("Use E Anti GapClose", true)
+	self.Enable_E = self:MenuBool("Use Combo E", true)
 
 	self.Enable_R = self:MenuBool("Enable R", true)
+
+	self.DrawW = self:MenuBool("Draw {W}", true)
+	self.DrawR = self:MenuBool("Draw {R}", true)
 
 	self.Combo = self:MenuKeyBinding("Combo", 32)
 	self.Harass = self:MenuKeyBinding("Harass", 67)
@@ -69,7 +69,11 @@ function Jhin:OnDrawMenu()
 			self.AfterQ = Menu_Bool("Use Combo Q", self.AfterQ, self.menu)
 			self.Enable_E = Menu_Bool("Enable E", self.Enable_E, self.menu)
 			self.Enable_R = Menu_Bool("Enable R", self.Enable_R, self.menu)
-			self.RangeQ = Menu_SliderInt("Range Q + R ", self.RangeQ, 0, 1600, self.menu)
+			Menu_End()
+		end
+		if Menu_Begin("Drawings") then
+			self.DrawW = Menu_Bool("Draw {W}", self.DrawW, self.menu)
+			self.DrawR = Menu_Bool("Draw {R}", self.DrawR, self.menu)
 			Menu_End()
 		end
 		if Menu_Begin("Key Mode") then
@@ -111,10 +115,10 @@ local function GetDistanceSqr(p1, p2)
 end
 
 function Jhin:OnDraw()
-	if self.W:IsReady() then
+	if self.W:IsReady() and self.DrawW then
 		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.W.range, Lua_ARGB(255,255,0,0))
 	end
-	if self.R:IsReady() then
+	if self.R:IsReady() and self.DrawR then
 		DrawCircleGame(myHero.x , myHero.y, myHero.z, self.R.range, Lua_ARGB(255,0,0,255))
 	end
 end
@@ -227,17 +231,17 @@ end
 
 function Jhin:LogicQ()
 	local target = self.menu_ts:GetTarget()
-	if target ~= 0 then
+	if target ~= 0 and self.AfterQ then
 	if self.Q:IsReady() and IsValidTarget(target, self.Q.range) then
 		self.Q:Cast(target)
-	end
+	   end
 	end
 end  
 
 
 function Jhin:LogicW()
         local TargetW = GetTargetSelector(self.W.range)
-        if TargetW ~= nil and IsValidTarget(TargetW, self.W.range) and CanCast(_W) and self:IsAfterAttack(target) then
+        if TargetW ~= nil and self.Use_Combo_W and IsValidTarget(TargetW, self.W.range) and CanCast(_W) and self:IsAfterAttack(target) then
             targetW = GetAIHero(TargetW)
             local CastPosition, HitChance, Position = vpred:GetLineCastPosition(targetW, self.W.delay, self.W.width, self.W.range, self.W.speed, myHero, false)
             if HitChance >= 2 then
@@ -248,7 +252,7 @@ end
 
 function Jhin:LogicE(target)
 	local TargetE = GetTargetSelector(self.E.range)
-	if CanCast(_E) and TargetE ~= 0 then
+	if CanCast(_E) and self.Enable_E and TargetE ~= 0 then
 		target = GetAIHero(TargetE)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.E.delay, self.E.width, self.E.range, self.E.speed, myHero, false)
 		if HitChance >= 2 then
@@ -259,7 +263,7 @@ end
 
 function Jhin:UtimateJhin(target)
 	local TargetR = GetTargetSelector(self.R.range)
-	if self.UtiOn and CanCast(_R) and TargetR ~= 0 then
+	if self.UtiOn and self.Enable_R and CanCast(_R) and TargetR ~= 0 then
 		target = GetAIHero(TargetR)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.R.delay, self.R.width, self.R.range, self.R.speed, myHero, false)
 		if HitChance >= 2 then
