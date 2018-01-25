@@ -25,8 +25,6 @@ function Zoe:__init()
 	self.MissileSpellsData = {}
 	self.QMilles = true
 
-	self.EnemyMinions = minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_HEALTH_ASC)
-
     self:MenuZoe()
 
 	self.Spells =
@@ -78,20 +76,12 @@ end
 function Zoe:MenuZoe()
 	self.menu = "Zoe"
 	self.Use_Combo_Q = self:MenuBool("Use Combo Q", true)
-	self.Auto_Q_End_Dash = self:MenuBool("Use Q", true)
-	self.Auto_Q_Kill_Steal = self:MenuBool("Auto Q Kill Steal", true)
-	self.RangeQ = self:MenuSliderInt("Range Q + R ", 1600)
 
 	self.Use_Combo_W = self:MenuBool("Use Combo W", false)
-	self.Use_W_Anti_GapClose = self:MenuBool("Use W Anti GapClose", true)
 
 	self.Enable_E = self:MenuBool("Enable E", true)
-	self.Use_Combo_E = self:MenuBool("Use Combo E", false)
-	self.UseE_Anti_GapClose = self:MenuBool("Use E Anti GapClose", true)
 
 	self.Enable_R = self:MenuBool("Enable R", true)
-	self.Auto_R_if_Hit = self:MenuSliderInt("Auto R if Hit", 2)
-	self.Use_R_Kill_Steal = self:MenuBool("Use R Kill Steal", true)
 
 	self.Combo = self:MenuKeyBinding("Combo", 32)
 	self.Harass = self:MenuKeyBinding("Harass", 67)
@@ -106,7 +96,6 @@ function Zoe:OnDrawMenu()
 			self.Use_Combo_Q = Menu_Bool("Use Combo Q", self.Use_Combo_Q, self.menu)
 			self.Enable_E = Menu_Bool("Enable E", self.Enable_E, self.menu)
 			self.Enable_R = Menu_Bool("Enable R", self.Enable_R, self.menu)
-			self.RangeQ = Menu_SliderInt("Range Q + R ", self.RangeQ, 0, 1600, self.menu)
 			Menu_End()
 		end
 		if Menu_Begin("Key Mode") then
@@ -225,10 +214,6 @@ function Zoe:OnTick()
 	self:KillSteal()
 	self:AutoMobili()
 
-	--[[if GetKeyPress(self.Lane_Clear) > 0 then	
-         self:LaneClearQ()
-	end]] 
-
     if GetKeyPress(self.Combo) > 0 then	
         self:LogicQ(target)
         --self:CastW(target)
@@ -252,19 +237,6 @@ function Zoe:LogicMobili()
 		end 
 	end 
 end 
-
---[[function Zoe:LaneClearQ()
-   self.EnemyMinions:update()
-    for k, v in pairs(self.EnemyMinions.objects) do
-		if CanCast(_Q) and IsValidTarget(v, self.Q.range) and v.IsEnemy then
-			local CastPosition, HitChance, Position = vpred:GetLineCastPosition(v, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
-			if HitChance >= 2 then
-				CastSpellToPos_2(CastPosition.x, CastPosition.y, _Q)
-				DelayAction(function() CastSpellToPos_2(CastPosition.x, CastPosition.z, _Q) end, 0.25)
-			end
-		end 
-	end 
-end]] 
 
 function Zoe:KillSteal()
 	local TargetQ = GetTargetSelector(self.Q.range)
@@ -290,7 +262,7 @@ end
 
 function Zoe:LogicQ(target)
 	local TargetQ = GetTargetSelector(self.Q.range)
-	if CanCast(_Q) and CanMove() and TargetQ ~= 0 then
+	if CanCast(_Q) and CanMove() and self.Use_Combo_Q and TargetQ ~= 0 then
 		target = GetAIHero(TargetQ)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.Q.delay, self.Q.width, self.Q.range, self.Q.speed, myHero, false)
 		local Collision = CountObjectCollision(0, target.Addr, myHero.x, myHero.z, CastPosition.x, CastPosition.z, self.Q.width, self.Q.range, 65)
@@ -303,7 +275,7 @@ end
 
 function Zoe:LogicE(target)
 	local TargetE = GetTargetSelector(self.E.range)
-	if CanCast(_E) and TargetE ~= 0 then
+	if CanCast(_E) and self.Enable_E and TargetE ~= 0 then
 		target = GetAIHero(TargetE)
 		local CastPosition, HitChance, Position = vpred:GetLineCastPosition(target, self.E.delay, self.E.width, self.E.range, self.E.speed, myHero, false)
 		local Collision = CountObjectCollision(0, target.Addr, myHero.x, myHero.z, CastPosition.x, CastPosition.z, self.E.width, self.E.range, 65)
@@ -315,7 +287,7 @@ end
 
 function Zoe:LogicR(target)
 	local TargetR = GetTargetSelector(self.R.range)
-	if CanCast(_R) and TargetR ~= 0 and self.QMilles then
+	if CanCast(_R) and self.Enable_R and TargetR ~= 0 and self.QMilles then
 		target = GetAIHero(TargetR)
 		local CastPosition, HitChance, Position = vpred:GetCircularCastPosition(target, self.R.delay, self.R.width, self.R.range, self.R.speed, myHero, false)
 		if HitChance >= 2 then
